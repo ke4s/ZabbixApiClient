@@ -20,21 +20,21 @@ int main(int argc, char** argv)
 
 	std::vector<std::string> keys_to_find;
 	for (int i = 4; i < argc; i++) {
-        keys_to_find.push_back(argv[i]);
-    }
+		keys_to_find.push_back(argv[i]);
+	}
 
 
-    pt::ptree params;
-    params.put("output", "extend");
-    params.put("hostids", "10084");
-    params.put("with_triggers", true);
-    params.put("sortfield", "name");
+	pt::ptree params;
+	params.put("output", "extend");
+	params.put("hostids", "10084");
+	params.put("with_triggers", true);
+	params.put("sortfield", "name");
 
 
-    std::string response = client.sendRequest(client.getRequestHeader("item.get", params));
-    pt::ptree jsonResponse;
-    std::istringstream is(response);
-    pt::read_json(is, jsonResponse);
+	std::string response = client.sendRequest(client.getRequestHeader("item.get", params));
+	pt::ptree jsonResponse;
+	std::istringstream is(response);
+	pt::read_json(is, jsonResponse);
 
 	/*
 	{
@@ -53,27 +53,27 @@ int main(int argc, char** argv)
 		}
 	}
 	*/
-	
+
 	for (int i = 0; i < keys_to_find.size(); i++)
 	{
 		std::cout << keys_to_find[i] <<  ((keys_to_find.size() -1) == i ? "" : ",");
 	}
 	std::cout << std::endl;
 
-	
-	
-    //"result" anahtarındaki diziye erişiyoruz.
-    for(auto& item : jsonResponse.get_child("result"))
+
+
+	//"result" anahtarındaki diziye erişiyoruz.
+	for(auto& item : jsonResponse.get_child("result"))
 	{
 		for(int i = 0 ; i < keys_to_find.size(); i++)
 		{
-			std::string value = item.second.get<std::string>(keys_to_find[i], "-");
+			std::string value = item.second.get<std::string>(keys_to_find[i], "N/A");
 			std::cout << value << ((keys_to_find.size() -1) == i ? "" : ",");
 		}
 		std::cout << std::endl;
-    }
+	}
 
-    
+
 }
 
 /*
