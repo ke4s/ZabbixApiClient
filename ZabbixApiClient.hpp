@@ -137,10 +137,9 @@ private:
 
             // Kimlik doğrulama tokeni alınır.
             _authToken = jsonResponse.get<std::string>("result");
-
-            std::cout << "AuthToken: " << _authToken << std::endl;
-
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception& e)
+        {
             std::cerr << "Error: " << e.what() << std::endl;
         };
     }
