@@ -51,10 +51,51 @@ public:
         disconnect();
     }
     
-    std::string makeRequest();
+    http::request<http::string_body> getRequestHeader(const std::string& method, const pt::ptree& params)
+    {
+        http::request<http::string_body> req{http::verb::post, "/zabbix/api_jsonrpc.php", 11};
+        req.set(http::field::host, _apiUrl);
+        req.set(http::field::content_type, "application/json");
+
+        pt::ptree root;
+        root.put("jsonrpc", "2.0");
+        root.put("method", method);
+        root.add_child("params", params);
+        root.put("id", 1);
+        if(!_authToken.empty())
+        {
+            root.put("auth", _authToken);
+        }
+
+        std::ostringstream jsonStream;
+        pt::write_json(jsonStream, root, false);
+        req.body() = jsonStream.str();
+
+        req.prepare_payload();
+
+        return req;
+    }
+
+    std::string sendRequest(const http::request<http::string_body>& req)
+    {
+        try {
+            http::write(_socket, req);
+
+            beast::flat_buffer buffer;
+            http::response<http::dynamic_body> res;
+            http::read(_socket, buffer, res);
+
+            return beast::buffers_to_string(res.body().data());
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+            return "";
+        }
+    }
+
 
 private:
-    void connect()
+
+    void connect(void)
     {
         try
         {
@@ -66,19 +107,60 @@ private:
         catch(const std::exception& e)
         {
             std::cerr << "Connection Error: " << e.what() << '\n';
-        }
+        };
     }
 
-    void disconnect()
+    void disconnect(void)
     {
-        
+        try {
+            _socket.shutdown(tcp::socket::shutdown_both);
+            _socket.close();
+        } catch (const std::exception& e) {
+            std::cerr << "Disconnect Error: " << e.what() << std::endl;
+        };
     }
 
-    login();
-    logout();
+    void login(void)
+    {
+        try
+        {
+            pt::ptree params;
+            params.put("username", _username);
+            params.put("password", _password);
 
-    sendRequest();
+            std::string response = sendRequest(getRequestHeader("user.login", params));
+
+            // JSON yanıtı Boost.PropertyTree kullanılarak ayrıştırılır.
+            pt::ptree jsonResponse;
+            std::istringstream is(response);
+            pt::read_json(is, jsonResponse);
+
+            // Kimlik doğrulama tokeni alınır.
+            _authToken = jsonResponse.get<std::string>("result");
+
+            std::cout << "AuthToken: " << _authToken << std::endl;
+
+        } catch (const std::exception& e) {
+            std::cerr << "Error: " << e.what() << std::endl;
+        };
+    }
+
+
+    void logout(void)
+    {
+        if(_authToken.empty()) {
+            return;
+        }
+        pt::ptree params;
+        std::string response = sendRequest(getRequestHeader("user.logout", params));
+        _authToken.clear();
+    }
 
 };
 
+
 #endif
+
+
+
+//login fonksiyonunu, yazılmış diğer fonksiyonları da kullanarak yeniden yaz.
