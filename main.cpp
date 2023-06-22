@@ -1,4 +1,8 @@
 #include "ZabbixApiClient.hpp"
+#include "Parse.hpp"
+#include "utils.hpp"
+
+
 #include <vector>
 
 namespace beast = boost::beast;
@@ -7,8 +11,32 @@ namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
 namespace pt = boost::property_tree;
 
+
+/*
+if ((vm.size() > 2))
+				throw std::runtime_error("If 'file' option is provided, no other options should be present");
+*/
 int main(int argc, char** argv)
 {
+	ProgramOptions options;
+
+	if (int idx = strsncmp("--file", argv, argc, 7) != -1)
+	{
+		if (argc != 3 || idx != 1)
+		{
+			std::cerr << "Error: --file parameter need an argument" << std::endl;
+			return 1;
+		}
+		Parse::parseFromFile(argv[2], options);
+	}
+	else
+		Parse::parseFromArgs(argc, argv, options);
+
+	
+	std::cout << options << std::endl;
+	
+	
+	/*
 	if (argc < 5)
 	{
 		std::cout << "| url | username | password | key_to_find | key_to_find ..." << std::endl;
@@ -35,8 +63,7 @@ int main(int argc, char** argv)
 	pt::ptree jsonResponse;
 	std::istringstream is(response);
 	pt::read_json(is, jsonResponse);
-
-	/*
+	
 	{
 		boost::property_tree::ptree temp_item = jsonResponse.get_child("result");
 		for (int i = 0; i < keys_to_find.size(); i++)
@@ -52,7 +79,6 @@ int main(int argc, char** argv)
 			}
 		}
 	}
-	*/
 
 	for (int i = 0; i < keys_to_find.size(); i++)
 	{
@@ -73,6 +99,7 @@ int main(int argc, char** argv)
 		std::cout << std::endl;
 	}
 
+	*/
 
 }
 
