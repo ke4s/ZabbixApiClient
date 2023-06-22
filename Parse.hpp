@@ -29,13 +29,13 @@ public:
 		try {
 			po::options_description desc("Allowed options");
 			desc.add_options()
-				("help", "produce help message")
-				("url", po::value<std::string>(&options.url)->required(), "URL")
-				("username", po::value<std::string>(&options.username)->required(), "Username")
-				("password", po::value<std::string>(&options.password)->required(), "Password")
-				("method", po::value<std::string>(&options.method)->required(), "Method")
-				("key", po::value<std::vector<std::string>>(&options.keys), "Keys")
-				("filter", po::value<std::vector<std::string>>(&options.filters), "Filters")
+				("help,h", "produce help message")
+				("url,u", po::value<std::string>(&options.url)->required(), "The Zabbix API's url")
+				("username,n", po::value<std::string>(&options.username)->required(), "The Zabbix API's Username")
+				("password,p", po::value<std::string>(&options.password)->required(), "The Zabbix API's Password")
+				("method,m", po::value<std::string>(&options.method)->required(), "The 'get' method, that you want to use.")
+				("key,k", po::value<std::vector<std::string>>(&options.keys), "Keys, that you want to recieve their datas.\n\tUsage: key key1.key2 key1.key2.key3\n")
+				("filter", po::value<std::vector<std::string>>(&options.filters), "Filter the data.\n\tUsage: --filter key:data\n")
 				("file", po::value<std::string>(&options.file), "File");
 					
 			po::variables_map vm;

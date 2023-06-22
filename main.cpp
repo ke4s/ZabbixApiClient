@@ -12,10 +12,6 @@ using tcp = boost::asio::ip::tcp;
 namespace pt = boost::property_tree;
 
 
-/*
-if ((vm.size() > 2))
-				throw std::runtime_error("If 'file' option is provided, no other options should be present");
-*/
 int main(int argc, char** argv)
 {
 	ProgramOptions options;
@@ -36,20 +32,8 @@ int main(int argc, char** argv)
 	std::cout << options << std::endl;
 	
 	
-	/*
-	if (argc < 5)
-	{
-		std::cout << "| url | username | password | key_to_find | key_to_find ..." << std::endl;
-		return -1;
-	}
 
-	ZabbixApiClient client(argv[1], argv[2], argv[3]);
-
-
-	std::vector<std::string> keys_to_find;
-	for (int i = 4; i < argc; i++) {
-		keys_to_find.push_back(argv[i]);
-	}
+	ZabbixApiClient client(options.url, options.username, options.password);
 
 
 	pt::ptree params;
@@ -59,48 +43,32 @@ int main(int argc, char** argv)
 	params.put("sortfield", "name");
 
 
-	std::string response = client.sendRequest(client.getRequestHeader("item.get", params));
+	std::string response = client.sendRequest(client.getRequestHeader(options.method, params));
 	pt::ptree jsonResponse;
 	std::istringstream is(response);
 	pt::read_json(is, jsonResponse);
-	
-	{
-		boost::property_tree::ptree temp_item = jsonResponse.get_child("result");
-		for (int i = 0; i < keys_to_find.size(); i++)
-		{
-			try
-			{
-				temp_item.get<std::string>(keys_to_find[i]);
-			}
-			catch(const std::exception& e)
-			{
-				std::cout << "silinen:" << (keys_to_find.begin() + i)->c_str() << std::endl;
-				keys_to_find.erase(keys_to_find.begin() + i);
-			}
-		}
-	}
 
-	for (int i = 0; i < keys_to_find.size(); i++)
+
+
+
+	for (int i = 0; i < options.keys.size(); i++)
 	{
-		std::cout << keys_to_find[i] <<  ((keys_to_find.size() -1) == i ? "" : ",");
+		std::cout << options.keys[i] <<  ((options.keys.size() -1) == i ? "" : ",");
 	}
 	std::cout << std::endl;
 
 
-
-	//"result" anahtarındaki diziye erişiyoruz.
 	for(auto& item : jsonResponse.get_child("result"))
 	{
-		for(int i = 0 ; i < keys_to_find.size(); i++)
+		for(int i = 0 ; i < options.keys.size(); i++)
 		{
-			std::string value = item.second.get<std::string>(keys_to_find[i], "N/A");
-			std::cout << value << ((keys_to_find.size() -1) == i ? "" : ",");
+			std::string value = item.second.get<std::string>(options.keys[i], "N/A");
+			std::cout << value << ((options.keys.size() -1) == i ? "" : ",");
 		}
 		std::cout << std::endl;
 	}
 
-	*/
-
+	return 0;
 }
 
 /*
