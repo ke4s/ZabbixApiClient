@@ -18,17 +18,8 @@ namespace pt = boost::property_tree;
 class ZabbixApiClient
 {
 private:
-    // Boost.Asio'nun kullanacağı I/O context (giriş/çıkış bağlamı) oluşturulur.
     net::io_context _ioc;
-
-    /*
-    TCP adres çözümleyici oluşturulur.
-    tcp::resolver _resolver;
-    */
-    
-    // TCP soket oluşturulur.
     tcp::socket _socket;
-
     std::string _apiUrl;
     std::string _username;
     std::string _password;
@@ -51,7 +42,7 @@ public:
         disconnect();
     }
     
-    http::request<http::string_body> getRequestHeader(const std::string& method, const pt::ptree& params)
+    http::request<http::string_body> prepareRequest(const std::string& method, const pt::ptree& params)
     {
         http::request<http::string_body> req{http::verb::post, "/zabbix/api_jsonrpc.php", 11};
         req.set(http::field::host, _apiUrl);
@@ -128,7 +119,7 @@ private:
             params.put("username", _username);
             params.put("password", _password);
 
-            std::string response = sendRequest(getRequestHeader("user.login", params));
+            std::string response = sendRequest(prepareRequest("user.login", params));
 
             // JSON yanıtı Boost.PropertyTree kullanılarak ayrıştırılır.
             pt::ptree jsonResponse;
@@ -151,7 +142,7 @@ private:
             return;
         }
         pt::ptree params;
-        std::string response = sendRequest(getRequestHeader("user.logout", params));
+        std::string response = sendRequest(prepareRequest("user.logout", params));
         _authToken.clear();
     }
 

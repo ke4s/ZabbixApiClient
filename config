@@ -1,0 +1,11 @@
+url = 192.168.1.22
+username = Admin
+password = zabbix
+method = item.get
+param = output:extend
+param = selectChildren:extend
+param = selectParents:extend
+filter = hosts:42264
+key = lastvalue
+key = itemi
+output = json

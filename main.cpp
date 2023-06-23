@@ -1,7 +1,7 @@
 #include "ZabbixApiClient.hpp"
 #include "Parse.hpp"
 #include "utils.hpp"
-
+#include "PTreePrinter.hpp"
 
 #include <vector>
 
@@ -10,6 +10,71 @@ namespace http = beast::http;
 namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
 namespace pt = boost::property_tree;
+
+
+
+
+
+void mergePropertyTrees(pt::ptree& dest, const pt::ptree& src)
+{
+    for (const auto& pair : src)
+        dest.add_child(pair.first, pair.second);
+}
+
+#include <boost/algorithm/string.hpp>
+pt::ptree prepareJsonBody(const ProgramOptions& options)
+{
+    pt::ptree params;
+
+	
+	pt::ptree parameters;
+	for (const auto& parameter : options.parameters)
+	{
+        auto delimiterPos = parameter.find(':');
+        auto path = parameter.substr(0, delimiterPos);
+        auto value = parameter.substr(delimiterPos + 1);
+		parameters.put(path, value);
+	}
+
+	if (!options.parameters.empty())
+		mergePropertyTrees(params, parameters);
+
+
+	pt::ptree output;
+    for (const auto& key : options.keys)
+	{
+        pt::ptree key_node;
+        key_node.put("", key);
+        output.push_back(std::make_pair("", key_node));
+    }
+
+    
+	if (!options.keys.empty())
+    	params.add_child("output", output);
+	
+    pt::ptree filterTree;
+    for (const auto& filter : options.filters)
+	{
+        auto delimiterPos = filter.find(':');
+        auto path = filter.substr(0, delimiterPos);
+        auto value = filter.substr(delimiterPos + 1);
+        std::istringstream pathStream(path);
+        std::string pathSegment;
+        pt::ptree* currentNode = &filterTree;
+        while (std::getline(pathStream, pathSegment, '.'))
+            currentNode = &currentNode->put_child(pathSegment, pt::ptree());
+		
+        currentNode->put_value(value);
+    }
+
+    if (!options.filters.empty())
+        params.put_child("filter", filterTree);
+
+
+	return params;
+}
+
+
 
 
 int main(int argc, char** argv)
@@ -29,71 +94,29 @@ int main(int argc, char** argv)
 		Parse::parseFromArgs(argc, argv, options);
 
 	
-	std::cout << options << std::endl;
+	//std::cout << options << std::endl;
 	
 	
 
 	ZabbixApiClient client(options.url, options.username, options.password);
 
-
-	pt::ptree params;
-	params.put("output", "extend");
-	params.put("hostids", "10084");
-	params.put("with_triggers", true);
-	params.put("sortfield", "name");
-
-
-	std::string response = client.sendRequest(client.getRequestHeader(options.method, params));
-	pt::ptree jsonResponse;
-	std::istringstream is(response);
-	pt::read_json(is, jsonResponse);
+	pt::ptree body = prepareJsonBody(options);
 
 
 
+    auto request = client.prepareRequest(options.method, body);
+	
+	//std::cout << request << std::endl  << std::endl << std::endl << std::endl;
 
-	for (int i = 0; i < options.keys.size(); i++)
-	{
-		std::cout << options.keys[i] <<  ((options.keys.size() -1) == i ? "" : ",");
-	}
-	std::cout << std::endl;
+	auto response = client.sendRequest(request);
 
 
-	for(auto& item : jsonResponse.get_child("result"))
-	{
-		for(int i = 0 ; i < options.keys.size(); i++)
-		{
-			std::string value = item.second.get<std::string>(options.keys[i], "N/A");
-			std::cout << value << ((options.keys.size() -1) == i ? "" : ",");
-		}
-		std::cout << std::endl;
-	}
+	if (options.outputFormat == "csv")
+		PTreePrinter::printJsonToCsv(response, options.keys);
+	else if (options.outputFormat == "json")
+		PTreePrinter::printStringToJson(response, options.keys);
+	else if (options.outputFormat == "xml")
+		PTreePrinter::printJsonToXml(response, options.keys);
 
 	return 0;
 }
-
-/*
-
-g++ main.cpp -lboost_system -lboost_thread -lboost_date_time -lboost_chrono -lboost_regex -lboost_atomic -lboost_serialization -lboost_filesystem -lboost_log -lboost_log_setup -lboost_program_options -lboost_unit_test_framework
-
-{
-  "jsonrpc": "2.0",
-  "result": [
-    {
-      "itemid": "45495",
-      "type": "18",
-    },
-    {
-      "itemid": "45492",
-      "type": "181",
-    },
-    {
-      "itemid": "4545",
-      "type": "189",
-    }
-    ]
-}
-
-
-itemid: 45494, type: {"fsname":"/boot","options":"rw,relatime","bytes":{"used":136040448,"free":1780183040,"total":2040373248,"pused":7.099404,"pfree":92.900596},"fstype":"ext4","inodes":{"used":316,"free":130756,"total":131072,"pused":0.241089,"pfree":99.758911}}
-itemid: 45488, type: {"fsname":"/","options":"rw,relatime","bytes":{"used":6156656640,"free":5250347008,"total":12040970240,"pused":53.972602,"pfree":46.027398},"fstype":"ext4","inodes":{"used":91069,"free":662595,"total":753664,"pused":12.083501,"pfree":87.916499}}
-*/
