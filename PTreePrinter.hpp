@@ -21,7 +21,7 @@ class PTreePrinter
         std::istringstream is(jsonStr);
         pt::ptree jsonResponse;
         pt::read_json(is, jsonResponse);
-
+        /*
         const auto& results = jsonResponse.get_child("result");
 
         pt::ptree jsonOutput;
@@ -49,8 +49,8 @@ class PTreePrinter
             }
             jsonOutput.push_back(std::make_pair("", jsonRow));
         }
-
-        pt::write_json(std::cout, jsonOutput);
+        */
+        pt::write_json(std::cout, jsonResponse);
     }
 
 

@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 
 
 
-    auto request = client.prepareRequest(options.method, body);
+    auto request = client.prepareRequest(http::verb::get ,options.method, body);
 	
 	//std::cout << request << std::endl  << std::endl << std::endl << std::endl;
 

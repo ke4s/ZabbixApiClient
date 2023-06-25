@@ -26,7 +26,6 @@ private:
     std::string _authToken;
 
 public:
-
     ZabbixApiClient(const std::string& apiUrl, const std::string& username, const std::string& password):
     _ioc(), _socket(_ioc),
     _apiUrl(apiUrl), _username(username), _password(password)
@@ -42,9 +41,9 @@ public:
         disconnect();
     }
     
-    http::request<http::string_body> prepareRequest(const std::string& method, const pt::ptree& params)
+    http::request<http::string_body> prepareRequest(const http::verb& type, const std::string& method, const pt::ptree& params)
     {
-        http::request<http::string_body> req{http::verb::post, "/zabbix/api_jsonrpc.php", 11};
+        http::request<http::string_body> req{type, "/zabbix/api_jsonrpc.php", 11};
         req.set(http::field::host, _apiUrl);
         req.set(http::field::content_type, "application/json");
 
@@ -119,7 +118,7 @@ private:
             params.put("username", _username);
             params.put("password", _password);
 
-            std::string response = sendRequest(prepareRequest("user.login", params));
+            std::string response = sendRequest(prepareRequest(http::verb::get ,"user.login", params));
 
             // JSON yanıtı Boost.PropertyTree kullanılarak ayrıştırılır.
             pt::ptree jsonResponse;
@@ -142,7 +141,7 @@ private:
             return;
         }
         pt::ptree params;
-        std::string response = sendRequest(prepareRequest("user.logout", params));
+        std::string response = sendRequest(prepareRequest(http::verb::get, "user.logout", params));
         _authToken.clear();
     }
 
@@ -150,7 +149,3 @@ private:
 
 
 #endif
-
-
-
-//login fonksiyonunu, yazılmış diğer fonksiyonları da kullanarak yeniden yaz.
