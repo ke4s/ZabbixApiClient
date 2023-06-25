@@ -1,5 +1,5 @@
 #include "ZabbixApiClient.hpp"
-#include "Parse.hpp"
+#include "GetProgramOptions.hpp"
 #include "utils.hpp"
 #include "PTreePrinter.hpp"
 
@@ -22,7 +22,7 @@ void mergePropertyTrees(pt::ptree& dest, const pt::ptree& src)
 }
 
 #include <boost/algorithm/string.hpp>
-pt::ptree prepareJsonBody(const ProgramOptions& options)
+pt::ptree prepareJsonBody(const ReqConfig& options)
 {
     pt::ptree params;
 
@@ -41,7 +41,7 @@ pt::ptree prepareJsonBody(const ProgramOptions& options)
 
 
 	pt::ptree output;
-    for (const auto& key : options.keys)
+    for (const auto& key : options.outputs)
 	{
         pt::ptree key_node;
         key_node.put("", key);
@@ -49,7 +49,7 @@ pt::ptree prepareJsonBody(const ProgramOptions& options)
     }
 
     
-	if (!options.keys.empty())
+	if (!options.outputs.empty())
     	params.add_child("output", output);
 	
     pt::ptree filterTree;
@@ -88,35 +88,37 @@ int main(int argc, char** argv)
 			std::cerr << "Error: --file parameter need an argument" << std::endl;
 			return 1;
 		}
-		Parse::parseFromFile(argv[2], options);
+		GetProgramOptions::getFromFile(argv[2], options);
 	}
 	else
-		Parse::parseFromArgs(argc, argv, options);
+		GetProgramOptions::getFromArgs(argc, argv, options);
 
 	
 	//std::cout << options << std::endl;
 	
 	
 
-	ZabbixApiClient client(options.url, options.username, options.password);
+	ZabbixApiClient client(options.apiConfig.url, options.apiConfig.username, options.apiConfig.password);
 
-	pt::ptree body = prepareJsonBody(options);
+	pt::ptree body = prepareJsonBody(options.reqConfig);
 
 
 
-    auto request = client.prepareRequest(http::verb::get ,options.method, body);
+    auto request = client.prepareRequest(http::verb::get ,options.reqConfig.method, body);
 	
 	//std::cout << request << std::endl  << std::endl << std::endl << std::endl;
 
 	auto response = client.sendRequest(request);
 
 
-	if (options.outputFormat == "csv")
-		PTreePrinter::printJsonToCsv(response, options.keys);
-	else if (options.outputFormat == "json")
-		PTreePrinter::printStringToJson(response, options.keys);
-	else if (options.outputFormat == "xml")
-		PTreePrinter::printJsonToXml(response, options.keys);
+	std::vector<std::string> &toPrint = (options.outputConfig.keyToPrint.empty() ? options.reqConfig.outputs : options.reqConfig.outputs); //burada eğer  dizi boş ise tamamını bastırmalı.
+
+	if (options.outputConfig.outputFormat == "csv")
+		PTreePrinter::printJsonToCsv(response, toPrint);
+	else if (options.outputConfig.outputFormat == "json")
+		PTreePrinter::printStringToJson(response, toPrint);
+	else if (options.outputConfig.outputFormat == "xml")
+		PTreePrinter::printJsonToXml(response, toPrint);
 
 	return 0;
 }
