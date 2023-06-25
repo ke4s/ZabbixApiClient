@@ -1,8 +1,8 @@
-#include "ZabbixApiClient.hpp"
-#include "GetProgramOptions.hpp"
-#include "utils.hpp"
-#include "PTreePrinter.hpp"
-
+#include "Headers/ZabbixApiClient.hpp"
+#include "Headers/GetProgramOptions.hpp"
+#include "Headers/utils.hpp"
+#include "Headers/PTreePrinter.hpp"
+	
 #include <vector>
 
 namespace beast = boost::beast;
