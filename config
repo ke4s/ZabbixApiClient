@@ -1,4 +1,3 @@
-url = 192.168.1.22
 username = Admin
 password = zabbix
 method = item.get
@@ -7,4 +6,5 @@ param = selectChildren:extend
 param = selectParents:extend
 filter = hostid:10583
 output = itemid
-outputformat = json
+outputformat = xml
+

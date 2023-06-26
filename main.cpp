@@ -81,19 +81,7 @@ int main(int argc, char** argv)
 {
 	ProgramOptions options;
 
-	if (int idx = strsncmp("--file", argv, argc, 7) != -1)
-	{
-		if (argc != 3 || idx != 1)
-		{
-			std::cerr << "Error: --file parameter need an argument" << std::endl;
-			return 1;
-		}
-		GetProgramOptions::getFromFile(argv[2], options);
-	}
-	else
-		GetProgramOptions::getFromArgs(argc, argv, options);
-
-	
+	GetProgramOptions::getOptions(argc, argv, options);
 	//std::cout << options << std::endl;
 	
 	
