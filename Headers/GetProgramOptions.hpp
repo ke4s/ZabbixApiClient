@@ -54,6 +54,165 @@ typedef struct s_ProgramOptions
 	std::string jsonFile;
 }	ProgramOptions;
 
+std::ostream& operator<<(std::ostream& os, const ProgramOptions& options);
+
+/*
+	Option'ları almaya argv'den başlar.
+	Argv'den alnınanlar en üst katmandır değiştirilemez.
+	eğer file varsa file'ın içindeki argümanları önceden aynı argümanlar kaydedilmediyse kaydeder.
+*/
+
+class GetProgramOptions {
+public:
+
+	
+
+	static void getOptions(int argc, char** argv, ProgramOptions &options)
+	{
+		po::variables_map vm;
+
+		try {
+			po::options_description desc("Allowed options");
+			desc.add_options()
+				("help", "produce help message")
+				
+				("url", po::value<std::string>(&options.apiConfig.url), "The Zabbix API's url")
+				("apipath", po::value<std::string>(&options.apiConfig.apiPath), "The Zabbix API's path def = \"/zabbix/api_jsonrpc.php\"")
+				("username", po::value<std::string>(&options.apiConfig.username), "The Zabbix API's Username")
+				("password", po::value<std::string>(&options.apiConfig.password), "The Zabbix API's Password")
+
+				("method", po::value<std::string>(&options.reqConfig.method), "The 'get' method, that you want to use.")
+				("httpmethod,", po::value<std::string>(&options.reqConfig.httpMethod), "HTTP method")
+				("param,par", po::value<std::vector<std::string>>(&options.reqConfig.parameters), "(OPT) Parameters, that you want to use parameters for request.\n\tUsage: param:value\n")
+				("output", po::value<std::vector<std::string>>(&options.reqConfig.outputs), "(OPT) Keys, that you want to recieve their datas.\n\tUsage: key key1.key2 key1.key2.key3\n")
+				("filter", po::value<std::vector<std::string>>(&options.reqConfig.filters), "(OPT) Filter the data.\n\tUsage: --filter key:data\n")
+				
+				("outputformat", po::value<std::string>(&options.outputConfig.outputFormat), "Output format. You can use CSV JSON XML")
+				("keytoprint", po::value<std::vector<std::string>>(&options.outputConfig.keyToPrint), "Key to print")
+
+				("file", po::value<std::string>(&options.file), "(OPT) File to read arguments")
+				("jsonfile", po::value<std::string>(&options.jsonFile), "(OPT) File to read Request");
+			
+			po::store(po::parse_command_line(argc, argv, desc), vm);
+
+			if (vm.count("help")) {
+				std::cout << desc << "\n";
+				exit(0);
+			}
+
+			po::notify(vm);
+
+
+			if (vm.count("file"))
+			{
+				options = getFromFile(options.file);
+				po::notify(vm); //argv'den aldıklarımızın öne çıkması için tekrar çalıştırıyorum. dosyadan okunanları eziyor bu
+			}
+
+			setDefaults(options);
+			
+			std::pair<std::string, bool> requiredCheck = requieredVarCheck(options);
+			if(requiredCheck.second == false)
+				throw std::runtime_error("ERROR: Required parameters missing.\n"  + requiredCheck.first + "\nUse --help for more information\n");
+
+			//options check daha fazlası gelecek. keytoprint, filter formatları önemli onları buraya ekleyeceğim
+			if (options.outputConfig.outputFormat != "csv" && options.outputConfig.outputFormat != "xml" && options.outputConfig.outputFormat != "json")
+				throw std::runtime_error("output format can only be internal type: json xml csv");
+
+		}
+		catch (std::runtime_error& e)
+		{
+			std::cerr << e.what() << ", application will now exit" << std::endl;
+			exit(2);
+		}
+		catch (std::exception& e)
+		{
+			std::cerr << "Unhandled Exception reached the top of main: "
+					<< e.what() << ", application will now exit" << std::endl;
+			exit(2);
+		}
+	}
+	private:
+
+    static ProgramOptions getFromFile(const std::string& filename)
+	{
+		ProgramOptions options;
+		try
+		{
+			options.file = filename;
+			po::options_description desc("Allowed options");
+			desc.add_options()				
+				("url", po::value<std::string>(&options.apiConfig.url), "The Zabbix API's url")
+				("apipath", po::value<std::string>(&options.apiConfig.apiPath), "The Zabbix API's path def = \"/zabbix/api_jsonrpc.php\"")
+				("username", po::value<std::string>(&options.apiConfig.username), "The Zabbix API's Username")
+				("password", po::value<std::string>(&options.apiConfig.password), "The Zabbix API's Password")
+
+				("method", po::value<std::string>(&options.reqConfig.method), "The 'get' method, that you want to use.")
+				("httpmethod,", po::value<std::string>(&options.reqConfig.httpMethod), "HTTP method")
+				("param,par", po::value<std::vector<std::string>>(&options.reqConfig.parameters), "(OPT) Parameters, that you want to use parameters for request.\n\tUsage: param:value\n")
+				("output", po::value<std::vector<std::string>>(&options.reqConfig.outputs), "(OPT) Keys, that you want to recieve their datas.\n\tUsage: key key1.key2 key1.key2.key3\n")
+				("filter", po::value<std::vector<std::string>>(&options.reqConfig.filters), "(OPT) Filter the data.\n\tUsage: --filter key:data\n")
+				
+				("outputformat", po::value<std::string>(&options.outputConfig.outputFormat), "Output format. You can use CSV JSON XML")
+				("keytoprint", po::value<std::vector<std::string>>(&options.outputConfig.keyToPrint), "Key to print")
+
+				("jsonfile", po::value<std::string>(&options.jsonFile), "(OPT) File to read Request");
+
+			std::ifstream settings_file(filename.c_str());
+			if (!settings_file) {
+				throw std::runtime_error("Could not open file: " + filename);
+			}
+			po::variables_map vm;
+			po::store(po::parse_config_file(settings_file, desc), vm);
+			po::notify(vm);
+
+
+			return options;
+		}
+		catch (std::ifstream::failure& e)
+		{
+			std::cerr << "ERROR: " << e.what() << std::endl;
+			std::cerr << "Failed to open or read file: " << filename << std::endl;
+			exit(1);
+		}
+		catch (std::exception& e)
+		{
+			std::cerr << "Unhandled Exception reached the top of main: "
+					<< e.what() << ", application will now exit" << std::endl;
+			exit(2);
+		}
+
+	}
+
+	//if there is a an error it will return errors and 1(bool value)
+	static std::pair<std::string, bool> requieredVarCheck(const ProgramOptions& opt)
+	{
+		std::string requireds = "";
+
+		if (opt.apiConfig.url.empty())
+			requireds += "--url is reqiured\n";	
+		if (opt.apiConfig.username.empty())
+			requireds += "--username is reqiured\n";
+		if (opt.apiConfig.password.empty())
+			requireds += "--password is reqiured\n";
+		if (opt.reqConfig.httpMethod.empty())
+			requireds += "--httpmethod is reqiured\n";
+		if (opt.reqConfig.method.empty())
+			requireds += "--method is reqiured\n";
+		
+		return std::make_pair(requireds, (requireds.empty() ? true : false)); //
+	}
+
+
+	static void setDefaults(ProgramOptions& options)
+	{
+		if (options.apiConfig.apiPath.empty())
+			options.apiConfig.apiPath = "/zabbix/api_jsonrpc.php";
+		if (options.outputConfig.outputFormat.empty())
+			options.outputConfig.outputFormat = "csv";
+	}
+};
+
 
 std::ostream& operator<<(std::ostream& os, const ApiConfig& config)
 {
@@ -126,171 +285,6 @@ std::ostream& operator<<(std::ostream& os, const ProgramOptions& options)
     os << "JSON File: " << options.jsonFile << '\n';
     return os;
 }
-/*
-	Option'ları almaya argv'den başlar.
-	Argv'den alnınanlar en üst katmandır değiştirilemez.
-	eğer file varsa file'ın içindeki argümanları önceden aynı argümanlar kaydedilmediyse kaydeder.
-*/
-
-class GetProgramOptions {
-public:
-
-	
-
-	static void getOptions(int argc, char** argv, ProgramOptions &options)
-	{
-		po::variables_map vm;
-
-		try {
-			po::options_description desc("Allowed options");
-			desc.add_options()
-				("help", "produce help message")
-				
-				("url", po::value<std::string>(&options.apiConfig.url), "The Zabbix API's url")
-				("apipath", po::value<std::string>(&options.apiConfig.apiPath), "The Zabbix API's path def = \"/zabbix/api_jsonrpc.php\"")
-				("username", po::value<std::string>(&options.apiConfig.username), "The Zabbix API's Username")
-				("password", po::value<std::string>(&options.apiConfig.password), "The Zabbix API's Password")
-
-				("method", po::value<std::string>(&options.reqConfig.method), "The 'get' method, that you want to use.")
-				("reqmethod,", po::value<std::string>(&options.reqConfig.httpMethod), "request method")
-				("param,par", po::value<std::vector<std::string>>(&options.reqConfig.parameters), "(OPT) Parameters, that you want to use parameters for request.\n\tUsage: param:value\n")
-				("output", po::value<std::vector<std::string>>(&options.reqConfig.outputs), "(OPT) Keys, that you want to recieve their datas.\n\tUsage: key key1.key2 key1.key2.key3\n")
-				("filter", po::value<std::vector<std::string>>(&options.reqConfig.filters), "(OPT) Filter the data.\n\tUsage: --filter key:data\n")
-				
-				("outputformat", po::value<std::string>(&options.outputConfig.outputFormat), "Output format. You can use CSV JSON XML")
-				("keytoprint", po::value<std::vector<std::string>>(&options.outputConfig.keyToPrint), "Key to print")
-
-				("file", po::value<std::string>(&options.file), "(OPT) File to read arguments")
-				("jsonfile", po::value<std::string>(&options.jsonFile), "(OPT) File to read Request");
-			
-			po::store(po::parse_command_line(argc, argv, desc), vm);
-
-			if (vm.count("help")) {
-				std::cout << desc << "\n";
-				exit(0);
-			}
-
-			po::notify(vm);
-
-
-			if (vm.count("file"))
-			{
-				options = getFromFile(options.file);
-				po::notify(vm); //argv'den aldıklarımızın öne çıkması için tekrar çalıştırıyorum. dosyadan okunanları eziyor bu
-			}
-
-			setDefaults(options);
-			
-			std::pair<std::string, bool> requiredCheck = requieredVarCheck(options);
-			if(requiredCheck.second == false)
-			{
-				std::cerr << "ERROR: Required parameters missing.\n"  << requiredCheck.first << "\nUse --help for more information" << std::endl;
-				exit(1);
-			}
-
-			//options check daha fazlası gelecek. keytoprint, filter formatları önemli onları buraya ekleyeceğim
-			if (options.outputConfig.outputFormat != "csv" && options.outputConfig.outputFormat != "xml" && options.outputConfig.outputFormat != "json")
-				throw std::runtime_error("output format can only be internal type: json xml csv");
-
-		}
-		catch (std::runtime_error& e)
-		{
-			std::cerr << e.what() << ", application will now exit" << std::endl;
-			exit(2);
-		}
-		catch (std::exception& e)
-		{
-			std::cerr << "Unhandled Exception reached the top of main: "
-					<< e.what() << ", application will now exit" << std::endl;
-			exit(2);
-		}
-	}
-	private:
-
-    static ProgramOptions getFromFile(const std::string& filename)
-	{
-		ProgramOptions options;
-		::memset(&options, 0, sizeof(ProgramOptions));
-		try
-		{
-			options.file = filename;
-			po::options_description desc("Allowed options");
-			desc.add_options()				
-				("url", po::value<std::string>(&options.apiConfig.url), "The Zabbix API's url")
-				("apipath", po::value<std::string>(&options.apiConfig.apiPath), "The Zabbix API's path def = \"/zabbix/api_jsonrpc.php\"")
-				("username", po::value<std::string>(&options.apiConfig.username), "The Zabbix API's Username")
-				("password", po::value<std::string>(&options.apiConfig.password), "The Zabbix API's Password")
-
-				("method", po::value<std::string>(&options.reqConfig.method), "The 'get' method, that you want to use.")
-				("reqmethod,", po::value<std::string>(&options.reqConfig.httpMethod), "request method")
-				("param,par", po::value<std::vector<std::string>>(&options.reqConfig.parameters), "(OPT) Parameters, that you want to use parameters for request.\n\tUsage: param:value\n")
-				("output", po::value<std::vector<std::string>>(&options.reqConfig.outputs), "(OPT) Keys, that you want to recieve their datas.\n\tUsage: key key1.key2 key1.key2.key3\n")
-				("filter", po::value<std::vector<std::string>>(&options.reqConfig.filters), "(OPT) Filter the data.\n\tUsage: --filter key:data\n")
-				
-				("outputformat", po::value<std::string>(&options.outputConfig.outputFormat), "Output format. You can use CSV JSON XML")
-				("keytoprint", po::value<std::vector<std::string>>(&options.outputConfig.keyToPrint), "Key to print")
-
-				("jsonfile", po::value<std::string>(&options.jsonFile), "(OPT) File to read Request");
-
-			std::ifstream settings_file(filename.c_str());
-			if (!settings_file) {
-				throw std::runtime_error("Could not open file: " + filename);
-			}
-			po::variables_map vm;
-			po::store(po::parse_config_file(settings_file, desc), vm);
-			po::notify(vm);
-
-
-			return options;
-		}
-		catch (std::ifstream::failure& e)
-		{
-			std::cerr << "ERROR: " << e.what() << std::endl;
-			std::cerr << "Failed to open or read file: " << filename << std::endl;
-			exit(1);
-		}
-		catch (std::exception& e)
-		{
-			std::cerr << "Unhandled Exception reached the top of main: "
-					<< e.what() << ", application will now exit" << std::endl;
-			exit(2);
-		}
-
-	}
-
-	//if there is a an error it will return errors and 1(bool value)
-	static std::pair<std::string, bool> requieredVarCheck(const ProgramOptions& opt)
-	{
-		std::string requireds = "";
-
-		if (opt.apiConfig.url.empty())
-			requireds += "--url is reqiured\n";	
-		if (opt.apiConfig.username.empty())
-			requireds += "--username is reqiured\n";
-		if (opt.apiConfig.password.empty())
-			requireds += "--password is reqiured\n";
-		if (opt.reqConfig.method.empty())
-			requireds += "--method is reqiured\n";
-		
-		return std::make_pair(requireds, (requireds.empty() ? true : false)); //
-	}
-
-
-	static void setDefaults(ProgramOptions& options)
-	{
-		if (options.apiConfig.apiPath.empty())
-			options.apiConfig.apiPath = "/zabbix/api_jsonrpc.php";
-		if (options.outputConfig.outputFormat.empty())
-			options.outputConfig.outputFormat = "csv";
-	}
-};
-
-
-
-
-//berbat gözüküyo xd
-
-
 
 
 #endif

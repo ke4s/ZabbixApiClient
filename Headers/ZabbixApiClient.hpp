@@ -21,14 +21,15 @@ private:
     net::io_context _ioc;
     tcp::socket _socket;
     std::string _apiUrl;
+    std::string _apiPath;
     std::string _username;
     std::string _password;
     std::string _authToken;
 
 public:
-    ZabbixApiClient(const std::string& apiUrl, const std::string& username, const std::string& password):
+    ZabbixApiClient(const std::string& apiUrl, const std::string& apiPath, const std::string& username, const std::string& password):
     _ioc(), _socket(_ioc),
-    _apiUrl(apiUrl), _username(username), _password(password)
+    _apiUrl(apiUrl), _apiPath(apiPath), _username(username), _password(password)
     {
         connect();
         login();
@@ -41,9 +42,16 @@ public:
         disconnect();
     }
     
+
+    /*
+        if the type is unkown it will throw an exception
+    */
     http::request<http::string_body> prepareRequest(const http::verb& type, const std::string& method, const pt::ptree& params)
     {
-        http::request<http::string_body> req{type, "/zabbix/api_jsonrpc.php", 11};
+        if (type == http::verb::unknown)
+            throw std::runtime_error("HTTP method is unknown, use capital letters.");
+
+        http::request<http::string_body> req{type, _apiPath, 11};
         req.set(http::field::host, _apiUrl);
         req.set(http::field::content_type, "application/json");
 
