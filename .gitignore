@@ -2,3 +2,5 @@
 .gitignore
 ZabbixApiClient
 config copy
+config
+testjson

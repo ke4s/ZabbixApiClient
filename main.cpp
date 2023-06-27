@@ -88,14 +88,6 @@ int main(int argc, char** argv)
 
 
 
-
-
-
-
-
-
-
-
 void mergePropertyTrees(pt::ptree& dest, const pt::ptree& src)
 {
     for (const auto& pair : src)

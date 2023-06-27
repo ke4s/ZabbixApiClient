@@ -113,9 +113,9 @@ class PTreePrinter
                     if (currentNode == &nullTree)
                         break;
                 }
-
+                std::string temp;
                 if (currentNode != &nullTree)
-                    csvRow.push_back(currentNode->get_value<std::string>());
+                    csvRow.push_back(((temp = currentNode->get_value<std::string>("N/A")) == "" ? "N/A" : temp)); // value "" gelirse yerine "N/A" yazar
                 else
                     csvRow.push_back("N/A");
             }
