@@ -15,10 +15,10 @@ Zabbix api ile iletişime geçmenizi sağlayacak client programı.
     --method arg          The method, that you want to use.
     --httpmethod arg      HTTP method
     --param arg           (OPT) Parameters, that you want to use parameters for request.
-                            Usage: param:value
+                            Usage: --param param:value
                         
     --output arg          (OPT) Keys, that you want to recieve their datas.
-                            Usage: key
+                            Usage: --output key
                         
     --filter arg          (OPT) Filter the data.
                             Usage: --filter key:data
