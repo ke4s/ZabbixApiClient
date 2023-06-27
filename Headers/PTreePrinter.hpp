@@ -16,7 +16,38 @@ class PTreePrinter
 {
     public:
 
-    static void printStringToJson(const std::string& jsonStr, const std::vector<std::string>& keys)
+    static std::string jsonToCsv(const boost::property_tree::ptree& pt)
+    {
+        std::ostringstream oss;
+
+        // Başlık satırını yazın
+        bool isFirst = true;
+        for (const auto& item : pt) {
+            if (!isFirst) {
+                oss << ",";
+            }
+            oss << item.first;
+            isFirst = false;
+        }
+        oss << std::endl;
+
+        // Verileri yazın
+        for (const auto& item : pt) {
+            isFirst = true;
+            for (const auto& field : item.second) {
+                if (!isFirst) {
+                    oss << ",";
+                }
+                oss << field.second.data();
+                isFirst = false;
+            }
+            oss << std::endl;
+        }
+
+        return oss.str();
+    }
+
+    static void printStringToJson(const std::string& jsonStr)
     {
         std::istringstream is(jsonStr);
         pt::ptree jsonResponse;
@@ -94,7 +125,7 @@ class PTreePrinter
         }
     }
 
-
+    /*
     static void printJsonToXml(const std::string& jsonStr, const std::vector<std::string>& keys)
     {
         std::istringstream is(jsonStr);
@@ -136,6 +167,7 @@ class PTreePrinter
 
         pt::write_xml(std::cout, xmlOutput);
     }
+    */
 };
 
  #endif

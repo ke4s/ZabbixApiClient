@@ -32,7 +32,18 @@ int main(int argc, char** argv)
 		ZabbixApiClient client(options.apiConfig.url, options.apiConfig.apiPath, \
 							options.apiConfig.username, options.apiConfig.password);
 
-		pt::ptree body = prepareJsonBody(options.reqConfig);
+		pt::ptree body;
+		if (!options.jsonFile.empty())
+		{
+			std::ifstream jsonfile(options.jsonFile.c_str());
+			if (!jsonfile)
+				throw std::runtime_error("Could not open file: " + options.jsonFile);
+			pt::read_json(jsonfile, body);
+		}
+		else
+			body = prepareJsonBody(options.reqConfig);
+
+		//pt::write_json(std::cout, body);
 
 
 		
@@ -46,14 +57,22 @@ int main(int argc, char** argv)
 		auto response = client.sendRequest(request);
 
 
-		std::vector<std::string> &toPrint = (options.outputConfig.keyToPrint.empty() ? options.reqConfig.outputs : options.reqConfig.outputs); //burada eğer  dizi boş ise tamamını bastırmalı.
-
-		if (options.outputConfig.outputFormat == "csv")
+		std::vector<std::string> &toPrint = (options.outputConfig.keyToPrint.empty() ? options.reqConfig.outputs : options.outputConfig.keyToPrint); //burada eğer  dizi boş ise tamamını bastırmalı.
+		
+		if (options.outputConfig.outputFormat == "json")
+			PTreePrinter::printStringToJson(response);
+		else if (options.outputConfig.outputFormat == "csv")
+		{	
+			/*
+			std::istringstream is(response);
+			pt::ptree jsonResponse;
+			pt::read_json(is, jsonResponse);
+			std::cout << PTreePrinter::jsonToCsv(jsonResponse.get_child("result"));
+			*/
 			PTreePrinter::printJsonToCsv(response, toPrint);
-		else if (options.outputConfig.outputFormat == "json")
-			PTreePrinter::printStringToJson(response, toPrint);
-		else if (options.outputConfig.outputFormat == "xml")
-			PTreePrinter::printJsonToXml(response, toPrint);
+		}
+		//else if (options.outputConfig.outputFormat == "xml")
+		//	PTreePrinter::printJsonToXml(response, toPrint);
 
 		return 0;
 	}

@@ -87,11 +87,11 @@ public:
 				("output", po::value<std::vector<std::string>>(&options.reqConfig.outputs), "(OPT) Keys, that you want to recieve their datas.\n\tUsage: key key1.key2 key1.key2.key3\n")
 				("filter", po::value<std::vector<std::string>>(&options.reqConfig.filters), "(OPT) Filter the data.\n\tUsage: --filter key:data\n")
 				
-				("outputformat", po::value<std::string>(&options.outputConfig.outputFormat), "Output format. You can use CSV JSON XML")
-				("keytoprint", po::value<std::vector<std::string>>(&options.outputConfig.keyToPrint), "Key to print")
+				("outputformat", po::value<std::string>(&options.outputConfig.outputFormat), "Output format. You can use CSV JSON. Default JSON")
+				("keytoprint", po::value<std::vector<std::string>>(&options.outputConfig.keyToPrint), "Keys for CSV format.")
 
 				("file", po::value<std::string>(&options.file), "(OPT) File to read arguments")
-				("jsonfile", po::value<std::string>(&options.jsonFile), "(OPT) File to read Request");
+				("jsonfile", po::value<std::string>(&options.jsonFile), "(OPT) A JSON file for request's params.");
 			
 			po::store(po::parse_command_line(argc, argv, desc), vm);
 
@@ -116,7 +116,7 @@ public:
 				throw std::runtime_error("ERROR: Required parameters missing.\n"  + requiredCheck.first + "\nUse --help for more information\n");
 
 			//options check daha fazlası gelecek. keytoprint, filter formatları önemli onları buraya ekleyeceğim
-			if (options.outputConfig.outputFormat != "csv" && options.outputConfig.outputFormat != "xml" && options.outputConfig.outputFormat != "json")
+			if (options.outputConfig.outputFormat != "csv" && options.outputConfig.outputFormat != "json")
 				throw std::runtime_error("output format can only be internal type: json xml csv");
 
 		}
@@ -153,10 +153,10 @@ public:
 				("output", po::value<std::vector<std::string>>(&options.reqConfig.outputs), "(OPT) Keys, that you want to recieve their datas.\n\tUsage: key key1.key2 key1.key2.key3\n")
 				("filter", po::value<std::vector<std::string>>(&options.reqConfig.filters), "(OPT) Filter the data.\n\tUsage: --filter key:data\n")
 				
-				("outputformat", po::value<std::string>(&options.outputConfig.outputFormat), "Output format. You can use CSV JSON XML")
-				("keytoprint", po::value<std::vector<std::string>>(&options.outputConfig.keyToPrint), "Key to print")
+				("outputformat", po::value<std::string>(&options.outputConfig.outputFormat), "Output format. You can use CSV JSON. Default JSON")
+				("keytoprint", po::value<std::vector<std::string>>(&options.outputConfig.keyToPrint), "Keys for CSV format.")
 
-				("jsonfile", po::value<std::string>(&options.jsonFile), "(OPT) File to read Request");
+				("jsonfile", po::value<std::string>(&options.jsonFile), "(OPT) A JSON file for request's params.");
 
 			std::ifstream settings_file(filename.c_str());
 			if (!settings_file) {
@@ -209,7 +209,7 @@ public:
 		if (options.apiConfig.apiPath.empty())
 			options.apiConfig.apiPath = "/zabbix/api_jsonrpc.php";
 		if (options.outputConfig.outputFormat.empty())
-			options.outputConfig.outputFormat = "csv";
+			options.outputConfig.outputFormat = "json";
 	}
 };
 
