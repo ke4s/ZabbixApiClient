@@ -1,6 +1,4 @@
-.vscode
-.gitignore
+.vscode/
 ZabbixApiClient
-config copy
 config
-testjson
+*.json

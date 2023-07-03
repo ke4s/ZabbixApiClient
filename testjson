@@ -1,9 +1,0 @@
-
-{
-    "selectChildren": "extend",
-    "selectParents": "extend",
-    "filter": {
-        "hostid": 10583
-    },
-    "output": "extend"
-}

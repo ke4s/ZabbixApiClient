@@ -1,7 +1,7 @@
-#include "Headers/ZabbixApiClient.hpp"
-#include "Headers/GetProgramOptions.hpp"
-#include "Headers/utils.hpp"
-#include "Headers/PTreePrinter.hpp"
+#include "Lib/ZabbixApiClient.hpp"
+#include "Lib/GetProgramOptions.hpp"
+#include "Lib/PrepareRequestFromOpt.hpp"
+#include "Lib/PTreePrinter.hpp"
 	
 #include <vector>
 
@@ -11,12 +11,6 @@ namespace net = boost::asio;
 using tcp = boost::asio::ip::tcp;
 namespace pt = boost::property_tree;
 
-
-void mergePropertyTrees(pt::ptree& dest, const pt::ptree& src);
-
-pt::ptree prepareJsonBody(const ReqConfig& options);
-
-
 int main(int argc, char** argv)
 {
 	try
@@ -25,10 +19,9 @@ int main(int argc, char** argv)
 		ProgramOptions options;
 
 		GetProgramOptions::getOptions(argc, argv, options);
+		
 		//std::cout << options << std::endl;
 		
-		//options check
-
 		ZabbixApiClient client(options.apiConfig.url, options.apiConfig.apiPath, \
 							options.apiConfig.username, options.apiConfig.password);
 
@@ -45,10 +38,6 @@ int main(int argc, char** argv)
 
 		//pt::write_json(std::cout, body);
 
-
-		
-
-
 		auto request = client.prepareRequest(http::string_to_verb(options.reqConfig.httpMethod), \
 														options.reqConfig.method, body);
 		
@@ -56,23 +45,14 @@ int main(int argc, char** argv)
 
 		auto response = client.sendRequest(request);
 
-
 		std::vector<std::string> &toPrint = (options.outputConfig.keyToPrint.empty() ? options.reqConfig.outputs : options.outputConfig.keyToPrint); //burada eğer  dizi boş ise tamamını bastırmalı.
 		
 		if (options.outputConfig.outputFormat == "json")
 			PTreePrinter::printStringToJson(response);
 		else if (options.outputConfig.outputFormat == "csv")
-		{	
-			/*
-			std::istringstream is(response);
-			pt::ptree jsonResponse;
-			pt::read_json(is, jsonResponse);
-			std::cout << PTreePrinter::jsonToCsv(jsonResponse.get_child("result"));
-			*/
 			PTreePrinter::printJsonToCsv(response, toPrint);
-		}
-		//else if (options.outputConfig.outputFormat == "xml")
-		//	PTreePrinter::printJsonToXml(response, toPrint);
+
+
 
 		return 0;
 	}
@@ -84,65 +64,3 @@ int main(int argc, char** argv)
 
 
 
-
-
-
-
-void mergePropertyTrees(pt::ptree& dest, const pt::ptree& src)
-{
-    for (const auto& pair : src)
-        dest.add_child(pair.first, pair.second);
-}
-
-#include <boost/algorithm/string.hpp>
-pt::ptree prepareJsonBody(const ReqConfig& options)
-{
-    pt::ptree params;
-
-	
-	pt::ptree parameters;
-	for (const auto& parameter : options.parameters)
-	{
-        auto delimiterPos = parameter.find(':');
-        auto path = parameter.substr(0, delimiterPos);
-        auto value = parameter.substr(delimiterPos + 1);
-		parameters.put(path, value);
-	}
-
-	if (!options.parameters.empty())
-		mergePropertyTrees(params, parameters);
-
-
-	pt::ptree output;
-    for (const auto& key : options.outputs)
-	{
-        pt::ptree key_node;
-        key_node.put("", key);
-        output.push_back(std::make_pair("", key_node));
-    }
-
-    
-	if (!options.outputs.empty())
-    	params.add_child("output", output);
-	
-    pt::ptree filterTree;
-    for (const auto& filter : options.filters)
-	{
-        auto delimiterPos = filter.find(':');
-        auto path = filter.substr(0, delimiterPos);
-        auto value = filter.substr(delimiterPos + 1);
-        std::istringstream pathStream(path);
-        std::string pathSegment;
-        pt::ptree* currentNode = &filterTree;
-        while (std::getline(pathStream, pathSegment, '.'))
-            currentNode = &currentNode->put_child(pathSegment, pt::ptree());
-		
-        currentNode->put_value(value);
-    }
-
-    if (!options.filters.empty())
-        params.put_child("filter", filterTree);
-
-
-	return params;
-}
